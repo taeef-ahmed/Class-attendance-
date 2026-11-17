@@ -3,7 +3,7 @@
   "short_name": "Attendance",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f3f7f4",
+  "background_color": "#f8fafc",
   "theme_color": "#176b43",
-  "description": "Personal class attendance tracker"
+  "description": "ব্যক্তিগত ক্লাসের উপস্থিতির হিসাব ও ক্লাউড সিঙ্ক"
 }

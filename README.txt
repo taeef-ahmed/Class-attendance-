@@ -1,28 +1,15 @@
-TAIF'S CLASS ATTENDANCE TRACKER — GOOGLE CLOUD SYNC EDITION
+TAIF'S CLASS ATTENDANCE TRACKER — V4 (LIGHT + DARK DASHBOARD EDITION)
 
-Included:
-- Google sign-in via Firebase Authentication
-- Firestore cloud sync, per-user data path
-- Firestore IndexedDB offline persistence (browser support required)
-- Recent activity list (last 5 displayed, up to 30 retained)
-- Existing localStorage attendance migration: when a signed-in user has no cloud record, local records are uploaded; when cloud data exists, cloud values win for matching dates and local-only dates are merged.
-- Existing monthly calendar, monthly summary, multi-month report, Telegram support, and developer credit.
+নতুন যা যুক্ত করা হয়েছে:
+1. Light Mode (Pastel Emerald-Indigo) এবং Dark Mode (Gold-Slate) থিম টগল।
+2. হিরো সামারি কার্ড ও সার্কুলার প্রোগ্রেস রিং।
+3. আজকের কুইক মার্ক বাটন (উপস্থিত, অনুপস্থিত, বন্ধ)।
+4. টার্গেট উপস্থিতির হার ক্যালকুলেটর (কয়টি ক্লাস করতে হবে বা মিস করা যাবে তার হিসাব)।
+5. সাপ্তাহিক ছুটির দিন অটো-মার্ক সেটিংস (যেমন: শুক্র ও শনিবার)।
+6. যেকোনো তারিখে নোট বা রিমার্ক সংরক্ষণ (তারিখে লং-প্রেস বা নিচের নোট বাটনে ট্যাপ করে)।
+7. এক ক্লিকে রিপোর্ট ছবি (PNG) আকারে ডাউনলোড এবং দৈনিক রিমাইন্ডার।
+8. স্বয়ংক্রিয় PWA আপডেট সিস্টেম (Network-First Service Worker v4)।
 
-IMPORTANT SETUP BEFORE DEPLOYING:
-1. In Firebase Console > Authentication > Sign-in method, enable Google.
-2. Authentication > Settings > Authorized domains: add your deployed domain (for example, your-project.vercel.app). Keep localhost only for local testing.
-3. Create Cloud Firestore database.
-4. Firestore > Rules: paste the contents of firestore.rules and Publish.
-5. Deploy the whole folder to your hosting provider over HTTPS (Vercel is fine). Do not open index.html as a file:// URL.
-
-Data model:
-users/{Firebase Auth UID}/attendance/main
-Only the signed-in UID can read/write its own attendance document under the included rules.
-
-Offline:
-Firestore IndexedDB persistence queues writes while offline and syncs them when connectivity returns, subject to browser support and the user having signed in online at least once. Do not clear browser site data if there are unsynced offline changes.
-
-SECURITY:
-Firebase web apiKey is a public client identifier, not a server secret. Never put service-account private keys in this website. Protect data using Firestore Security Rules as supplied. Firebase billing/quotas may apply depending on usage and project plan.
-
-If sign-in redirect does not return to the app, check Firebase Authentication > Settings > Authorized domains and use the exact deployed domain.
+Vercel-এ আপডেট করার নিয়ম:
+- এই ফোল্ডারের সব ফাইল (index.html, sw.js, manifest.webmanifest, icon.svg) আপনার আগের প্রজেক্ট ফোল্ডারে রিপ্লেস করে Vercel-এ পুনরায় Deploy করুন।
+- ব্যবহারকারীরা অ্যাপটি ওপেন করলেই স্বয়ংক্রিয়ভাবে নতুন ডিজাইন ও ফিচার পেয়ে যাবেন এবং আগের কোনো ডেটা হারাবে না।
