@@ -7,6 +7,12 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg">
 <title>Class Attendance — Taif Ahmed</title>
+<script>
+/* Instant Login / Session Memory Fast Load check */
+if (localStorage.getItem('auth_uid_v4') && !location.hash.includes('login_retry')) {
+  document.documentElement.classList.add('fast-loading-user');
+}
+</script>
 <style>
 :root{
   --bg:#f8fafc;
@@ -53,6 +59,10 @@ button,input,select{font:inherit}
 button{cursor:pointer}
 .hide{display:none!important}
 
+/* Prevent login flash if logged in */
+.fast-loading-user #login { display: none !important; }
+.fast-loading-user #app { display: block !important; }
+
 /* Header */
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
@@ -65,6 +75,17 @@ button{cursor:pointer}
 .icon-btn{width:36px;height:36px;border-radius:11px;border:1px solid var(--border);background:var(--surface);color:var(--text);display:grid;place-items:center;font-size:16px}
 .avatar-btn{display:flex;align-items:center;gap:6px;padding:4px 9px 4px 4px;border-radius:99px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:11.5px;font-weight:650}
 .avatar-btn img{width:26px;height:26px;border-radius:50%;object-fit:cover}
+
+/* Routine Section */
+.routine-box{margin-top:8px}
+.routine-item{display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--surface-2);border-radius:14px;border:1px solid var(--border);margin-bottom:8px}
+.routine-time{flex:none;width:85px;font-size:12.5px;font-weight:750;color:var(--text)}
+.routine-details{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.routine-name{font-size:13.5px;font-weight:750;color:var(--text)}
+.routine-info{font-size:11.5px;color:var(--muted);font-weight:550}
+
+/* Weekly Routine View in modal */
+.weekly-day-title{display:inline-block;font-size:11.5px;font-weight:750;background:var(--p-bg);color:var(--p-fg);padding:4px 9px;border-radius:99px;margin:12px 0 8px}
 
 /* Hero Summary Card */
 .hero{background:var(--hero-bg);color:var(--hero-text);border-radius:22px;padding:18px 16px;margin-bottom:13px;box-shadow:var(--shadow);border:1px solid var(--glass-border)}
@@ -146,8 +167,8 @@ input[type="month"],input[type="number"],input[type="time"],input[type="text"]{w
 .activity-main small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
 
 /* Modal */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:30;display:grid;place-items:center;padding:16px}
-.modal{width:min(100%,400px);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:0 20px 45px rgba(0,0,0,0.35)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:30;display:grid;place-items:center;padding:16px;overflow-y:auto}
+.modal{width:min(100%,450px);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:0 20px 45px rgba(0,0,0,0.35);max-height:85vh;overflow-y:auto}
 
 /* Login */
 .loginwrap{position:fixed;inset:0;background:var(--bg);z-index:40;display:grid;place-items:center;padding:20px}
@@ -202,6 +223,17 @@ input[type="month"],input[type="number"],input[type="time"],input[type="text"]{w
 </header>
 
 <main id="app" class="hide">
+  <!-- Today's Routine Card -->
+  <section class="card" id="routineCard">
+    <div class="card-head">
+      <b id="routineTitle">আজকের রুটিন (বুধবার)</b>
+      <button class="btn" id="fullRoutineBtn" style="padding:5px 11px;font-size:12px;font-weight:750">পূর্ণ রুটিন</button>
+    </div>
+    <div class="routine-box" id="todayRoutineBox">
+      <!-- Generated Today's Classes -->
+    </div>
+  </section>
+
   <!-- Hero Summary Card -->
   <section class="hero" id="heroCard">
     <div class="hero-top">
@@ -306,6 +338,16 @@ input[type="month"],input[type="number"],input[type="time"],input[type="text"]{w
   </footer>
 </main>
 
+<!-- Weekly Routine Modal -->
+<div id="weeklyRoutineModal" class="modal-bg hide">
+  <div class="modal">
+    <div class="card-head"><b>সাপ্তাহিক ক্লাস রুটিন</b><button id="closeWeeklyRoutine" class="btn" style="padding:4px 10px">✕</button></div>
+    <div id="weeklyRoutineContainer">
+      <!-- Dynamic Weekly Classes -->
+    </div>
+  </div>
+</div>
+
 <!-- Settings Modal -->
 <div id="settingsModal" class="modal-bg hide">
   <div class="modal">
@@ -391,6 +433,37 @@ const pad=n=>String(n).padStart(2,'0');
 const key=(y,m)=>`${y}-${pad(m+1)}`;
 const mi=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
 const bnDigits=s=>String(s).replace(/\d/g,d=>'০১২৩৪৫৬৭৮৯'[d]);
+
+/* Class Routine Data Map with Full Name and Clean Room formats */
+const routineData = {
+  0: [ // SUN
+    { time: "১০:০০ - ১০:৪৫", name: "Microeconomics", info: "রুম: ৬০১ • Nazmun Nahar (NN)" },
+    { time: "১০:৪৫ - ১১:৩০", name: "Statistics", info: "রুম: ৬০১ • Md. Sohel Sarker (SS)" }
+  ],
+  1: [ // MON
+    { time: "১০:০০ - ১০:৪৫", name: "Macroeconomics", info: "রুম: ৬০১ • Saifur Rahman (SR)" },
+    { time: "১০:৪৫ - ১১:৩০", name: "Mathematics", info: "রুম: ৬০১ • Shamim Ahammed (SA)" },
+    { time: "১১:৪০ - ১২:২০", name: "Statistics", info: "রুম: ৩৯ • Abul Kashem Mohammad Zahurul Haque (ZH)" }
+  ],
+  2: [ // TUE
+    { time: "১০:০০ - ১০:৪৫", name: "Mathematics", info: "রুম: ৬০১ • Pallabi Dey (PD)" },
+    { time: "১০:৪৫ - ১১:৩০", name: "Statistics", info: "রুম: ৬০১ • Tania Shireen (TS)" }
+  ],
+  3: [ // WED
+    { time: "১০:০০ - ১০:৪৫", name: "Microeconomics", info: "রুম: ৬০১ • Abu Zafor (AZ)" },
+    { time: "১০:৪৫ - ১১:৩০", name: "Macroeconomics", info: "রুম: ৬০১ • Abtabun Nahar (AN)" },
+    { time: "১১:৪০ - ১২:২০", name: "Microeconomics", info: "রুম: ৩৯ • Dr. Razia Mahbuba Akhter (RMA)" }
+  ],
+  4: [ // THU
+    { time: "১০:০০ - ১০:৪৫", name: "Mathematics", info: "রুম: ৬০১ • Imrul Hasan (IH)" },
+    { time: "১০:৪৫ - ১১:৩০", name: "Macroeconomics", info: "রুম: ৬০১ • Aklima Akther (AA)" },
+    { time: "১১:৪০ - ১২:২০", name: "Microeconomics", info: "রুম: ৩৯ • Mst. Murshida Khatun (MMK)" }
+  ],
+  5: [], // FRI - Closed
+  6: []  // SAT - Closed
+};
+
+const dayNamesBN = ["রবিবার", "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার"];
 
 /* Theme Management */
 function applyTheme(t){
@@ -515,6 +588,76 @@ function renderTodayQuick(){
   $('todayNoteBtn').onclick=()=>openNoteModal(`${key(y,m)}-${pad(d)}`,now.toLocaleDateString('bn-BD',{day:'numeric',month:'long'}));
 }
 
+/* Routine View Generator with Modern Redesigned Cards */
+function renderRoutine(){
+  const todayDow = new Date().getDay();
+  const classesToday = routineData[todayDow] || [];
+  
+  $('routineTitle').textContent = `আজকের রুটিন (${dayNamesBN[todayDow]})`;
+  const tBox = $('todayRoutineBox');
+  tBox.innerHTML = '';
+  
+  if (classesToday.length === 0) {
+    tBox.innerHTML = '<p class="note">আজকে কোনো সাধারণ বা নিয়মিত ক্লাস নেই। আনন্দ করুন!</p>';
+  } else {
+    classesToday.forEach((cl, index) => {
+      const row = document.createElement('div');
+      row.className = 'routine-item';
+      
+      const idxNum = bnDigits(index + 1);
+      row.innerHTML = `
+        <div class="routine-time">${cl.time}</div>
+        <div class="routine-details">
+          <div class="routine-name">${idxNum}. ${cl.name}</div>
+          <div class="routine-info">${cl.info}</div>
+        </div>
+      `;
+      tBox.append(row);
+    });
+  }
+  
+  // Prepare full weekly modal container content
+  const wBox = $('weeklyRoutineContainer');
+  wBox.innerHTML = '';
+  for (let dow = 0; dow <= 6; dow++) {
+    const list = routineData[dow] || [];
+    const daySec = document.createElement('div');
+    daySec.className = 'weekly-day-section';
+    
+    let dayHead = document.createElement('div');
+    dayHead.className = 'weekly-day-title';
+    dayHead.textContent = dayNamesBN[dow];
+    daySec.append(dayHead);
+    
+    if (list.length === 0) {
+      const blank = document.createElement('p');
+      blank.className = 'note';
+      blank.style.paddingLeft = '6px';
+      blank.textContent = "কোনো ক্লাস নেই";
+      daySec.append(blank);
+    } else {
+      list.forEach((cl, idx) => {
+        const item = document.createElement('div');
+        item.className = 'routine-item';
+        item.style.padding = '10px 12px';
+        item.style.marginBottom = '6px';
+        item.innerHTML = `
+          <div class="routine-time" style="width:78px; font-size:12px;">${cl.time}</div>
+          <div class="routine-details">
+            <div class="routine-name" style="font-size:13px;">${bnDigits(idx+1)}. ${cl.name}</div>
+            <div class="routine-info" style="font-size:11px;">${cl.info}</div>
+          </div>
+        `;
+        daySec.append(item);
+      });
+    }
+    wBox.append(daySec);
+  }
+}
+
+$('fullRoutineBtn').onclick = () => $('weeklyRoutineModal').classList.remove('hide');
+$('closeWeeklyRoutine').onclick = () => $('weeklyRoutineModal').classList.add('hide');
+
 function render(){
   const y=view.getFullYear(),m=view.getMonth(),k=key(y,m);
   const data=getEffectiveMonthData(y,m);
@@ -585,6 +728,7 @@ function render(){
   renderTodayQuick();
   rangeRender();
   renderActivity();
+  renderRoutine();
 }
 
 /* Note Modal */
@@ -732,7 +876,9 @@ async function loadCloud(user){
   $('userName').textContent=(user.displayName||'লগআউট').split(' ')[0];
   if(user.photoURL){$('avatar').src=user.photoURL;$('avatar').classList.remove('hide')}
   status('লোড হচ্ছে…');
-  try{
+  try {
+    /* Fast memory token storage for Instant Reload Session skip */
+    localStorage.setItem('auth_uid_v4', user.uid);
     const snap=await getDoc(cloudRef);
     if(snap.exists()){
       const cloud=snap.data();
@@ -791,7 +937,14 @@ $('googleLogin').onclick=async()=>{
     $('loginMsg').textContent='লগইন ব্যর্থ: '+(e.message||e.code);
   }
 };
-$('logout').onclick=async()=>{if(confirm('লগআউট করতে চাও?')){await signOut(auth);location.reload()}};
+$('logout').onclick=async()=>{
+  if(confirm('লগআউট করতে চাও?')){
+    localStorage.removeItem('auth_uid_v4');
+    await signOut(auth);
+    location.hash = 'login_retry';
+    location.reload();
+  }
+};
 $('prev').onclick=()=>{view.setMonth(view.getMonth()-1);render()};
 $('next').onclick=()=>{view.setMonth(view.getMonth()+1);render()};
 $('from').value=mi(new Date(new Date().getFullYear(),new Date().getMonth()-5,1));
@@ -801,7 +954,12 @@ $('to').onchange=rangeRender;
 
 onAuthStateChanged(auth,user=>{
   if(user)loadCloud(user);
-  else{$('login').classList.remove('hide');$('app').classList.add('hide');$('logout').classList.add('hide')}
+  else{
+    localStorage.removeItem('auth_uid_v4');
+    $('login').classList.remove('hide');
+    $('app').classList.add('hide');
+    $('logout').classList.add('hide');
+  }
 });
 window.addEventListener('online',()=>{if(currentUser)queueCloudSave()});
 render();

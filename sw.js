@@ -1,4 +1,4 @@
-const CACHE = 'taif-attendance-v4';
+const CACHE = 'taif-attendance-v4-routine-updated';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', e => {
